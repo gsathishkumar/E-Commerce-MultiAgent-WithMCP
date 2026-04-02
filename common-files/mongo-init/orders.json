@@ -1,0 +1,98 @@
+[
+  {
+    "order_id": "ORD-10001",
+    "customer_name": "Rahul Verma",
+    "customer_email": "rahul.verma@wipro.com",
+    "product_id": "PROD-001",
+    "product_name": "MacBook Air M3 15-inch",
+    "quantity": 1,
+    "total_amount": 134900,
+    "order_date": "2026-03-08",
+    "status": "shipped",
+    "tracking_id": "DELHIVERY-8834521",
+    "carrier": "Delhivery",
+    "estimated_delivery": "2026-03-14",
+    "shipping_address": "42, Koramangala 4th Block, Bangalore 560034",
+    "payment_method": "Credit Card (HDFC)",
+    "tracking_updates": [
+      {
+        "date": "2026-03-08",
+        "status": "Order placed",
+        "location": ""
+      },
+      {
+        "date": "2026-03-09",
+        "status": "Packed",
+        "location": "Mumbai Warehouse"
+      },
+      {
+        "date": "2026-03-10",
+        "status": "Shipped",
+        "location": "Mumbai Warehouse"
+      },
+      {
+        "date": "2026-03-11",
+        "status": "In transit",
+        "location": "Pune Hub"
+      },
+      {
+        "date": "2026-03-12",
+        "status": "In transit",
+        "location": "Bangalore Hub"
+      },
+      {
+        "date": "2026-03-13",
+        "status": "Out for delivery",
+        "location": "Koramangala"
+      }
+    ]
+  },
+  {
+    "order_id": "ORD-10002",
+    "customer_name": "Sneha Patel",
+    "customer_email": "sneha.patel@tcs.com",
+    "product_id": "PROD-002",
+    "product_name": "Sony WH-1000XM5 Headphones",
+    "quantity": 1,
+    "total_amount": 24990,
+    "order_date": "2026-03-01",
+    "status": "delivered",
+    "tracking_id": "BLUEDART-7723019",
+    "carrier": "Blue Dart",
+    "delivered_date": "2026-03-04",
+    "shipping_address": "15, Baner Road, Pune 411045",
+    "payment_method": "UPI (sneha@okicici)"
+  },
+
+  {
+    "order_id": "ORD-10003",
+    "customer_name": "Amit Sharma",
+    "customer_email": "amit.sharma@techcorp.in",
+    "product_id": "PROD-004",
+    "product_name": "LG 55-inch C4 OLED TV",
+    "quantity": 1,
+    "total_amount": 139990,
+    "order_date": "2026-03-12",
+    "status": "processing",
+    "tracking_id": null,
+    "carrier": null,
+    "estimated_delivery": "2026-03-18",
+    "shipping_address": "88, Indiranagar 100ft Road, Bangalore 560038",
+    "payment_method": "EMI (ICICI - 6 months no-cost)"
+  },
+  {
+    "order_id": "ORD-10004",
+    "customer_name": "Priya Nair",
+    "customer_email": "priya.nair@infosys.com",
+    "product_id": "PROD-003",
+    "product_name": "Samsung Galaxy S24 Ultra",
+    "quantity": 1,
+    "total_amount": 129999,
+    "order_date": "2026-02-15",
+    "status": "cancelled",
+    "cancellation_reason": "Customer requested - found better deal",
+    "refund_status": "refunded",
+    "refund_amount": 129999,
+    "refund_date": "2026-02-18"
+  }
+]

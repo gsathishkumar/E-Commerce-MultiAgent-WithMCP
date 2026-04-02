@@ -1,0 +1,36 @@
+[
+  {
+    "return_id": "RET-3001",
+    "order_id": "ORD-10002",
+    "customer_name": "Sneha Patel",
+    "product_name": "Sony WH-1000XM5 Headphones",
+    "reason": "Defective - Left ear cup not producing sound",
+    "request_date": "2026-03-10",
+    "status": "pickup_scheduled",
+    "pickup_date": "2026-03-15",
+    "refund_method": "Original payment method (UPI)",
+    "refund_amount": 24990,
+    "refund_status": "pending",
+    "resolution_type": "replacement",
+    "replacement_order_id": "ORD-10005",
+    "return_policy_days": 7,
+    "eligible": true
+  },
+  {
+    "return_id": "RET-3002",
+    "order_id": "ORD-10001",
+    "customer_name": "Rahul Verma",
+    "product_name": "MacBook Air M3 15-inch",
+    "reason": "Not satisfied with performance",
+    "request_date": "2026-03-14",
+    "status": "evaluation",
+    "pickup_date": null,
+    "refund_method": "Store credit",
+    "refund_amount": 134900,
+    "refund_status": "pending",
+    "resolution_type": "refund",
+    "return_policy_days": 7,
+    "eligible": true,
+    "notes": "Within 7-day return window. Product must be in original packaging."
+  }
+]

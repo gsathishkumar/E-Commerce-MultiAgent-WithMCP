@@ -1,0 +1,36 @@
+# Ignore the Git history and configuration
+.git
+.gitignore
+
+# Ignore temporary files and logs
+tmp/
+*.tmp
+*.log
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Language-specific ignores
+
+# Node.js
+node_modules/
+npm-debug.log
+.env
+
+# Python
+__pycache__/
+.venv
+pip-log.txt
+
+# Build artifacts and directories
+build/
+dist/
+target/
+
+# Ignore the Dockerfile itself and any related compose files from being copied into the image
+Dockerfile
+docker-compose*.yml
+
+*.md
+!README.md

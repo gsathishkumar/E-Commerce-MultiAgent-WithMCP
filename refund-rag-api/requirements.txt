@@ -1,0 +1,28 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.17
+
+# PostgreSQL async driver
+asyncpg==0.30.0
+
+# SQLAlchemy async ORM
+sqlalchemy[asyncio]==2.0.36
+
+# pgvector SQLAlchemy integration
+pgvector==0.3.6
+
+# Text extraction
+PyPDF2==3.0.1
+
+# Chunking
+langchain-text-splitters==0.3.2
+
+# Pydantic / settings
+pydantic==2.10.2
+pydantic-settings==2.6.1
+
+# Async file I/O
+aiofiles==24.1.0
+
+# OpenAI Client
+openai==2.30.0

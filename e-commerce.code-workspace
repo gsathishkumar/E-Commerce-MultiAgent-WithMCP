@@ -1,0 +1,31 @@
+{
+  "folders": [
+    {
+      "name": "ecommerce-support",
+      "path": "ecommerce-support",
+    },
+    {
+      "name": "product-rag-api",
+      "path": "product-rag-api",
+    },
+    {
+      "name": "refund-rag-api",
+      "path": "refund-rag-api",
+    },
+    {
+      "name": "order-api",
+      "path": "order-api",
+    },
+    {
+      "name": "refund-api",
+      "path": "refund-api",
+    },
+    {
+      "name": "common-files",
+      "path": "common-files",
+    },
+  ],
+  "settings": {
+    "prettier.jsxSingleQuote": false,
+  },
+}

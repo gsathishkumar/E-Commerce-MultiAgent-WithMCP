@@ -1,0 +1,14 @@
+# Ignore a specific folder
+build/
+dist/
+
+# Ignore the Dockerfile in the root
+Dockerfile
+
+# Ignore any file named Dockerfile in any subdirectory
+**/Dockerfile
+
+# Ignore files with a .dockerfile extension
+*.dockerfile
+
+*ignore
