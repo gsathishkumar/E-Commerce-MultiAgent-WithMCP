@@ -1,10 +1,10 @@
 """
 Refunds DB Agent
-────────────────
-Tool 1: GET http://localhost:8004/refund-api/api/v1/refunds/return/{return_id}
+
+Tool 1: MCP tool `get_return_details`
         Returns the full return/refund document for the given return_id.
 
-Tool 2: GET http://localhost:8004/refund-api/api/v1/refunds/order/{order_id}
+Tool 2: MCP tool `get_all_returns_by_order`
         Returns all return requests linked to the given order_id,
         with a summary of each return sorted oldest-first.
 
@@ -13,13 +13,18 @@ priority; falls back to order_id), calls the matching tool(s), and passes
 both responses to 'openai_model' for a natural-language answer.
 """
 
-import re
+import asyncio
 import json
-import httpx
+import re
+
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-from app.schema.state import SupportState
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+from mcp.types import TextContent
+
 from app.core.settings import settings
+from app.schema.state import SupportState
 
 _AGENT_SYSTEM = """You are a refunds and returns specialist. You have access to real-time
 return and refund data retrieved from the database.
@@ -28,12 +33,12 @@ Using the return/refund information provided, answer the customer's question cle
 Cover return status, refund amount, refund method, expected credit timelines, pickup details,
 or any relevant notes from the system.
 
-Be empathetic and proactive — if a refund is expected soon, reassure the customer.
+Be empathetic and proactive - if a refund is expected soon, reassure the customer.
 If data shows an issue, acknowledge it and suggest next steps.
 """
 
 _RETURN_ID_RE = re.compile(r"\bRET[-–]?\d{4,8}\b", re.IGNORECASE)
-_ORDER_ID_RE  = re.compile(r"\bORD[-–]?\d{4,8}\b", re.IGNORECASE)
+_ORDER_ID_RE = re.compile(r"\bORD[-–]?\d{4,8}\b", re.IGNORECASE)
 
 
 def _extract_ids(query: str) -> tuple[str | None, str | None]:
@@ -45,8 +50,54 @@ def _extract_ids(query: str) -> tuple[str | None, str | None]:
     )
 
 
+def _decode_mcp_result(result) -> dict:
+    """Prefer structured MCP output and fall back to JSON text content."""
+    structured = getattr(result, "structuredContent", None)
+    if structured is not None:
+        return structured
+
+    for content in getattr(result, "content", []):
+        if isinstance(content, TextContent):
+            try:
+                return json.loads(content.text)
+            except json.JSONDecodeError:
+                return {"message": content.text}
+
+    return {"error": "MCP tool returned no usable content."}
+
+
+async def _fetch_refund_tool_data(return_id: str | None, order_id: str | None) -> dict:
+    tool_data: dict = {}
+
+    async with streamable_http_client(settings.refund_mcp_url) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            if return_id:
+                try:
+                    return_result = await session.call_tool(
+                        "get_return_details",
+                        arguments={"return_id": return_id},
+                    )
+                    tool_data["return_document"] = _decode_mcp_result(return_result)
+                except Exception as exc:
+                    tool_data["return_document"] = {"error": str(exc)}
+
+            if order_id:
+                try:
+                    order_result = await session.call_tool(
+                        "get_all_returns_by_order",
+                        arguments={"order_id": order_id},
+                    )
+                    tool_data["returns_for_order"] = _decode_mcp_result(order_result)
+                except Exception as exc:
+                    tool_data["returns_for_order"] = {"error": str(exc)}
+
+    return tool_data
+
+
 def refunds_db_agent(state: SupportState) -> SupportState:
-    """Fetch return/refund data then generate a natural-language response."""
+    """Fetch return/refund data via MCP then generate a natural-language response."""
     query = state["customer_query"]
     return_id, order_id = _extract_ids(query)
 
@@ -60,31 +111,15 @@ def refunds_db_agent(state: SupportState) -> SupportState:
             ),
         }
 
-    tool_data: dict = {}
-
-    # ── Tool 1: Specific return document ─────────────────────────────────────
-    if return_id:
-        try:
-            resp = httpx.get(f"{settings.refund_api_url}/return/{return_id}", timeout=15)
-            resp.raise_for_status()
-            tool_data["return_document"] = resp.json()
-        except httpx.HTTPStatusError as exc:
-            tool_data["return_document"] = {"error": exc.response.text}
-        except Exception as exc:
+    try:
+        tool_data = asyncio.run(_fetch_refund_tool_data(return_id, order_id))
+    except Exception as exc:
+        tool_data = {}
+        if return_id:
             tool_data["return_document"] = {"error": str(exc)}
-
-    # ── Tool 2: All returns for an order ─────────────────────────────────────
-    if order_id:
-        try:
-            resp = httpx.get(f"{settings.refund_api_url}/order/{order_id}", timeout=15)
-            resp.raise_for_status()
-            tool_data["returns_for_order"] = resp.json()
-        except httpx.HTTPStatusError as exc:
-            tool_data["returns_for_order"] = {"error": exc.response.text}
-        except Exception as exc:
+        if order_id:
             tool_data["returns_for_order"] = {"error": str(exc)}
 
-    # ── LLM: Synthesise response ─────────────────────────────────────────────
     llm = ChatOpenAI(
         model=settings.openai_model,
         api_key=settings.openai_api_key,

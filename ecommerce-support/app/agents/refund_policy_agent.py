@@ -1,18 +1,20 @@
 """
 Refund Policy RAG Agent
-───────────────────────
-Tool   : GET http://localhost:8002/refund-rag/api/v1/retrieve
-Flow   : Call tool → inject chunks into prompt → 'openai_model' generates grounded answer.
-
-Query params  : ?query=<customer query>&top_k=4
-Expected resp : list of { "id": "...", "content": "..." }  (or any JSON the server returns)
+Tool   : MCP tool `get_refund_chunks_by_query`
+Flow   : Call tool -> inject chunks into prompt -> 'openai_model' generates grounded answer.
 """
 
-import httpx
+import asyncio
+import json
+
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-from app.schema.state import SupportState
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+from mcp.types import TextContent
+
 from app.core.settings import settings
+from app.schema.state import SupportState
 
 _AGENT_SYSTEM = """You are a customer support specialist well-versed in the store's return,
 refund, and exchange policies.
@@ -28,22 +30,42 @@ Be empathetic, clear, and reassuring.
 """
 
 
+def _decode_mcp_result(result) -> dict:
+    """Prefer structured MCP output and fall back to JSON text content."""
+    structured = getattr(result, "structuredContent", None)
+    if structured is not None:
+        return structured
+
+    for content in getattr(result, "content", []):
+        if isinstance(content, TextContent):
+            try:
+                return json.loads(content.text)
+            except json.JSONDecodeError:
+                return {"message": content.text}
+
+    return {"error": "MCP tool returned no usable content."}
+
+
+async def _fetch_refund_policy_chunks(query: str) -> dict:
+    async with streamable_http_client(settings.refund_policy_mcp_url) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "get_refund_chunks_by_query",
+                arguments={"query": query, "top_k": 4},
+            )
+            return _decode_mcp_result(result)
+
+
 def refund_policy_agent(state: SupportState) -> SupportState:
     """RAG agent for refund/return/exchange policy queries."""
     query = state["customer_query"]
 
-    # ── Step 1: Retrieve context chunks from Docker tool endpoint ────────────
     context = ""
     try:
-        resp = httpx.get(
-            settings.refund_policy_rag_url,
-            params={"query": query, "top_k": 4},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        response_json = resp.json()
-        parts = [] # All chunks are accumulated here
-        for i, chunk in enumerate(response_json['results']):
+        response_json = asyncio.run(_fetch_refund_policy_chunks(query))
+        parts = []
+        for i, chunk in enumerate(response_json.get("results", [])):
             text = chunk.get("text")
             parts.append(f"[Policy section {i + 1}]\n{text}")
         context = "\n\n".join(parts)
@@ -51,7 +73,6 @@ def refund_policy_agent(state: SupportState) -> SupportState:
         context = "(Refund policy service unavailable.)"
         state = {**state, "error": str(exc)}
 
-    # ── Step 2: Generate grounded answer via 'openai_model' ────────────────────
     llm = ChatOpenAI(
         model=settings.openai_model,
         api_key=settings.openai_api_key,

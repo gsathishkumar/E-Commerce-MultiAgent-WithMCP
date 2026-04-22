@@ -8,6 +8,7 @@ Run:
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi_mcp import FastApiMCP
 
 from app.config import settings
 from app.db import close_db, connect_db
@@ -35,6 +36,13 @@ app = FastAPI(
 
 app.include_router(order_router, prefix=settings.api_v1_prefix)
 
+mcp = FastApiMCP(app, 
+                 name="OrderDB as MCP Server",
+                 description="MCP Service exposing order details and tracking history",
+                 describe_all_responses=True,
+                 describe_full_response_schema=True,
+                 include_operations=["get_order_details","get_order_tracking_history"])
+mcp.mount_http()
 
 # ---------------------------------------------------------------------------
 # Health

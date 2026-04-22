@@ -24,6 +24,7 @@ router = APIRouter(prefix="/refunds", tags=["Refunds"])
         200: {"description": "Return document found and returned successfully."},
         404: {"description": "Return request not found."},
     },
+    operation_id="get_return_details"
 )
 async def fetch_return_details(return_id: str) -> ReturnResponse:
     """
@@ -54,6 +55,7 @@ async def fetch_return_details(return_id: str) -> ReturnResponse:
         200: {"description": "Return requests found and returned successfully."},
         404: {"description": "No return requests found for this order."},
     },
+    operation_id="get_all_returns_by_order"
 )
 async def fetch_returns_by_order(order_id: str) -> ReturnsByOrderResponse:
     """

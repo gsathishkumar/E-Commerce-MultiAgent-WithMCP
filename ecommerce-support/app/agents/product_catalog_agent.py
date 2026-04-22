@@ -1,16 +1,18 @@
 """
 Product Catalog RAG Agent
 ─────────────────────────
-Tool   : GET http://localhost:8001/product-rag/api/v1/retrieve
+Tool   : MCP tool `get_product_chunks_by_query`
 Flow   : Call tool → inject chunks into prompt → 'openai_model' generates grounded answer.
-
-Query params  : ?query=<customer query>&top_k=3
-Expected resp : list of { "id": "...", "content": "..." }  (or any JSON the server returns)
 """
 
-import httpx
+import asyncio
+import json
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+from mcp.types import TextContent
+
 from app.schema.state import SupportState
 from app.core.settings import settings
 
@@ -27,22 +29,43 @@ Do NOT invent product details. Be precise and friendly.
 """
 
 
+def _decode_mcp_result(result) -> dict:
+    """Prefer structured MCP output and fall back to JSON text content."""
+    structured = getattr(result, "structuredContent", None)
+    if structured is not None:
+        return structured
+
+    for content in getattr(result, "content", []):
+        if isinstance(content, TextContent):
+            try:
+                return json.loads(content.text)
+            except json.JSONDecodeError:
+                return {"message": content.text}
+
+    return {"error": "MCP tool returned no usable content."}
+
+
+async def _fetch_product_chunks(query: str) -> dict:
+    async with streamable_http_client(settings.product_mcp_url) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+            result = await session.call_tool(
+                "get_product_chunks_by_query",
+                arguments={"query": query, "top_k": 3},
+            )
+            return _decode_mcp_result(result)
+
+
 def product_catalog_agent(state: SupportState) -> SupportState:
     """RAG agent for product catalog queries."""
     query = state["customer_query"]
 
-    # ── Step 1: Retrieve context chunks from Docker tool endpoint ────────────
+    # ── Step 1: Retrieve context chunks from the MCP tool ────────────────────
     context = ""
     try:
-        resp = httpx.get(
-            settings.product_rag_url,
-            params={"query": query, "top_k": 3},
-            timeout=15,
-        )
-        resp.raise_for_status()
-        response_json = resp.json()
-        parts = [] # All chunks are accumulated here
-        for i, chunk in enumerate(response_json['results']):
+        response_json = asyncio.run(_fetch_product_chunks(query))
+        parts = []
+        for i, chunk in enumerate(response_json.get("results", [])):
             text = chunk.get("text")
             parts.append(f"[Product context {i + 1}]\n{text}")
         context = "\n\n".join(parts)

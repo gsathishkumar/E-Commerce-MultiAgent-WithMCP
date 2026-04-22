@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi_mcp import FastApiMCP
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router
@@ -102,7 +103,13 @@ app.add_middleware(
 # Mount all API routes under /api/v1
 app.include_router(api_router, prefix="/refund-rag/api/v1")
 
-
+mcp = FastApiMCP(app, 
+                 name="RefundRAG as MCP Server",
+                 description="Expose tool to retrieve semantically relevant chunks.",
+                 describe_all_responses=True,
+                 describe_full_response_schema=True,
+                 include_operations=["get_refund_chunks_by_query"])
+mcp.mount_http()
 # ──────────────────────────────────────────────────────────────────────────────
 # Health check
 # ──────────────────────────────────────────────────────────────────────────────

@@ -15,29 +15,28 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str
     openai_model: str
-    
-    # Tool endpoints base url
-    product_rag_base_url: str
-    refund_policy_rag_base_url: str
-    order_api_base_url: str
-    refund_api_base_url: str
 
-    # Tool endpoints url (computed so env overrides to base URLs flow through)
-    @property
-    def product_rag_url(self) -> str:
-        return f"{self.product_rag_base_url}/product-rag/api/v1/retrieve"
+    # MCP Server URLs
+    product_mcp_base_url: str
+    refund_policy_mcp_base_url: str
+    order_mcp_base_url: str
+    refund_mcp_base_url: str
 
     @property
-    def refund_policy_rag_url(self) -> str:
-        return f"{self.refund_policy_rag_base_url}/refund-rag/api/v1/retrieve"
+    def product_mcp_url(self) -> str:
+        return f"{self.product_mcp_base_url}/mcp"
 
     @property
-    def order_api_url(self) -> str:
-        return f"{self.order_api_base_url}/order-api/api/v1/orders"
+    def refund_policy_mcp_url(self) -> str:
+        return f"{self.refund_policy_mcp_base_url}/mcp"
 
     @property
-    def refund_api_url(self) -> str:
-        return f"{self.refund_api_base_url}/refund-api/api/v1/refunds"
+    def order_mcp_url(self) -> str:
+        return f"{self.order_mcp_base_url}/mcp"
+
+    @property
+    def refund_mcp_url(self) -> str:
+        return f"{self.refund_mcp_base_url}/mcp"
 
     model_config = SettingsConfigDict(
         env_file=".env",

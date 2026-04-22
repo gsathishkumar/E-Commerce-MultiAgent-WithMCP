@@ -1,24 +1,29 @@
 """
 Orders DB Agent
-───────────────
-Tool 1: GET http://localhost:8003/order-api/api/v1/orders/{order_id}
+
+Tool 1: MCP tool `get_order_details`
         Returns the full order document from MongoDB.
 
-Tool 2: GET http://localhost:8003/order-api/api/v1/orders/{order_id}/tracking
+Tool 2: MCP tool `get_order_tracking_history`
         Returns carrier metadata and the full list of tracking events
         for the given order_id, in chronological order.
 
-Both tool responses are serialised to JSON and injected into a single
-'openai_model' prompt to produce the final natural-language answer.
+Both tool responses are serialized to JSON and injected into a single
+LLM prompt to produce the final natural-language answer.
 """
 
-import re
+import asyncio
 import json
-import httpx
+import re
+
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-from app.schema.state import SupportState
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+from mcp.types import TextContent
+
 from app.core.settings import settings
+from app.schema.state import SupportState
 
 _AGENT_SYSTEM = """You are an order management specialist. You have access to real-time order
 and shipment data retrieved from the database.
@@ -39,8 +44,52 @@ def _extract_order_id(query: str) -> str | None:
     return match.group(0).upper().replace("–", "-") if match else None
 
 
+def _decode_mcp_result(result) -> dict:
+    """Prefer structured MCP output and fall back to JSON text content."""
+    structured = getattr(result, "structuredContent", None)
+    if structured is not None:
+        return structured
+
+    for content in getattr(result, "content", []):
+        if isinstance(content, TextContent):
+            try:
+                return json.loads(content.text)
+            except json.JSONDecodeError:
+                return {"message": content.text}
+
+    return {"error": "MCP tool returned no usable content."}
+
+
+async def _fetch_order_tool_data(order_id: str) -> dict:
+    tool_data: dict = {}
+
+    async with streamable_http_client(settings.order_mcp_url) as (read, write, _):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
+
+            try:
+                order_result = await session.call_tool(
+                    "get_order_details",
+                    arguments={"order_id": order_id},
+                )
+                tool_data["order"] = _decode_mcp_result(order_result)
+            except Exception as exc:
+                tool_data["order"] = {"error": str(exc)}
+
+            try:
+                tracking_result = await session.call_tool(
+                    "get_order_tracking_history",
+                    arguments={"order_id": order_id},
+                )
+                tool_data["tracking"] = _decode_mcp_result(tracking_result)
+            except Exception as exc:
+                tool_data["tracking"] = {"error": str(exc)}
+
+    return tool_data
+
+
 def orders_db_agent(state: SupportState) -> SupportState:
-    """Fetch order + tracking data then generate a natural-language response."""
+    """Fetch order + tracking data via MCP then generate a natural-language response."""
     query = state["customer_query"]
     order_id = _extract_order_id(query)
 
@@ -53,29 +102,14 @@ def orders_db_agent(state: SupportState) -> SupportState:
             ),
         }
 
-    tool_data: dict = {}
-
-    # ── Tool 1: Full order document ──────────────────────────────────────────
     try:
-        resp = httpx.get(f"{settings.order_api_url}/{order_id}", timeout=15)
-        resp.raise_for_status()
-        tool_data["order"] = resp.json()
-    except httpx.HTTPStatusError as exc:
-        tool_data["order"] = {"error": exc.response.text}
+        tool_data = asyncio.run(_fetch_order_tool_data(order_id))
     except Exception as exc:
-        tool_data["order"] = {"error": str(exc)}
+        tool_data = {
+            "order": {"error": str(exc)},
+            "tracking": {"error": str(exc)},
+        }
 
-    # ── Tool 2: Tracking history ─────────────────────────────────────────────
-    try:
-        resp = httpx.get(f"{settings.order_api_url}/{order_id}/tracking", timeout=15)
-        resp.raise_for_status()
-        tool_data["tracking"] = resp.json()
-    except httpx.HTTPStatusError as exc:
-        tool_data["tracking"] = {"error": exc.response.text}
-    except Exception as exc:
-        tool_data["tracking"] = {"error": str(exc)}
-
-    # ── LLM: Synthesise response ─────────────────────────────────────────────
     llm = ChatOpenAI(
         model=settings.openai_model,
         api_key=settings.openai_api_key,

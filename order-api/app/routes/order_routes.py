@@ -24,6 +24,7 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
         200: {"description": "Order found and returned successfully."},
         404: {"description": "Order not found."},
     },
+    operation_id="get_order_details"
 )
 async def fetch_order_details(order_id: str) -> OrderResponse:
     """
@@ -54,6 +55,7 @@ async def fetch_order_details(order_id: str) -> OrderResponse:
         200: {"description": "Tracking history returned successfully."},
         404: {"description": "Order not found."},
     },
+    operation_id="get_order_tracking_history"
 )
 async def fetch_order_tracking(order_id: str) -> TrackingResponse:
     """

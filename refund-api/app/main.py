@@ -8,6 +8,7 @@ Run:
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi_mcp import FastApiMCP
 
 from app.config import settings
 from app.db import close_db, connect_db
@@ -24,7 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     description=(
-        "FastAPI service exposing return request details and per-order return "
+        "FastAPI service exposing return request details and per-order return"
         "history from MongoDB.\n\n"
         "**Layers:** Routes → Services → Tools → MongoDB `refunds` collection"
     ),
@@ -35,7 +36,13 @@ app = FastAPI(
 
 app.include_router(refund_router, prefix=settings.api_v1_prefix)
 
-
+mcp = FastApiMCP(app, 
+                 name="RefundDB as MCP Server",
+                 description="MCP service exposing return request details and per-order return",
+                 describe_all_responses=True,
+                 describe_full_response_schema=True,
+                 include_operations=["get_return_details","get_all_returns_by_order"])
+mcp.mount_http()
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------

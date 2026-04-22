@@ -57,7 +57,7 @@ services:
 
   # ── Product RAG API application ────────────────────────────────────────────────────
   product_rag_api:
-    image: ecommerce/product_rag_api:latest
+    image: ecommerce/product_rag_api:with-mcp
     container_name: product_rag_api
     env_file:
       - path: ../product-rag-api/.env
@@ -80,12 +80,12 @@ services:
         ]
       interval: 60s
       timeout: 5s
-      retries: 10
+      retries: 15
       start_period: 10s
 
   # ── Refund RAG API application ────────────────────────────────────────────────────
   refund_rag_api:
-    image: ecommerce/refund_rag_api:latest
+    image: ecommerce/refund_rag_api:with-mcp
     container_name: refund_rag_api
     env_file:
       - path: ../refund-rag-api/.env
@@ -108,12 +108,12 @@ services:
         ]
       interval: 60s
       timeout: 5s
-      retries: 10
+      retries: 15
       start_period: 10s
 
   # ── Order API application ────────────────────────────────────────────────────
   order_mongo_app:
-    image: ecommerce/order_mongo_app:latest
+    image: ecommerce/order_mongo_app:with-mcp
     container_name: order_mongo_app
     env_file:
       - path: ../order-api/.env
@@ -135,12 +135,12 @@ services:
         ]
       interval: 60s
       timeout: 5s
-      retries: 10
+      retries: 15
       start_period: 10s
 
   # ── Refund API application ────────────────────────────────────────────────────
   refund_mongo_app:
-    image: ecommerce/refund_mongo_app:latest
+    image: ecommerce/refund_mongo_app:with-mcp
     container_name: refund_mongo_app
     env_file:
       - path: ../refund-api/.env
@@ -162,12 +162,12 @@ services:
         ]
       interval: 60s
       timeout: 5s
-      retries: 10
+      retries: 15
       start_period: 10s
 
   # ── E-Commerce Customer Support System application ────────────────────────────────────────────────────
   ecommerce_support_app:
-    image: ecommerce/ecommerce_support_app:latest
+    image: ecommerce/ecommerce_support_app:with-mcp
     container_name: ecommerce_support_app
     env_file:
       - path: ../ecommerce-support/.env
@@ -183,10 +183,10 @@ services:
       refund_mongo_app:
         condition: service_healthy
     environment:
-      PRODUCT_RAG_BASE_URL: http://product_rag_api:8000
-      REFUND_POLICY_RAG_BASE_URL: http://refund_rag_api:8000
-      ORDER_API_BASE_URL: http://order_mongo_app:8000
-      REFUND_API_BASE_URL: http://refund_mongo_app:8000
+      PRODUCT_MCP_BASE_URL: http://product_rag_api:8000
+      REFUND_POLICY_MCP_BASE_URL: http://refund_rag_api:8000
+      ORDER_MCP_BASE_URL: http://order_mongo_app:8000
+      REFUND_MCP_BASE_URL: http://refund_mongo_app:8000
     ports:
       - '9000:8000'
     healthcheck:
@@ -198,5 +198,5 @@ services:
         ]
       interval: 60s
       timeout: 5s
-      retries: 10
+      retries: 15
       start_period: 10s

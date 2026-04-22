@@ -20,6 +20,7 @@ router = APIRouter()
     "/retrieve",
     response_model=RetrievalResponse,
     summary="Retrieve relevant document chunks for a natural-language query",
+    operation_id="get_product_chunks_by_query"
 )
 async def retrieve(
     request: Request,

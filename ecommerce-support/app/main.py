@@ -10,11 +10,11 @@ Run:
     uvicorn main:app --host 0.0.0.0 --port 9000 --reload
 
 Environment variables (can also be set in .env):
-    OPENAI_API_KEY          — required
-    PRODUCT_RAG_URL         — default: http://localhost:8001/product-rag/api/v1/retrieve
-    REFUND_POLICY_RAG_URL   — default: http://localhost:8002/refund-rag/api/v1/retrieve
-    ORDER_BASE_URL          — default: http://localhost:8003/order-api/api/v1/orders
-    REFUND_BASE_URL         — default: http://localhost:8004/refund-api/api/v1/refunds
+    OPENAI_API_KEY               — required
+    PRODUCT_MCP_BASE_URL         — default: http://localhost:8001/mcp
+    REFUND_POLICY_MCP_BASE_URL   — default: http://localhost:8002/mcp
+    ORDER_MCP_BASE_URL           — default: http://localhost:8003/mcp
+    REFUND_MCP_BASE_URL          — default: http://localhost:8004/mcp
 """
 
 import logging
@@ -83,10 +83,10 @@ async def show_settings():
     return {
         "workflow_compiled": workflow_ready,
         "model": settings.openai_model,
-        "tool_endpoints": {
-            "product_rag": settings.product_rag_url,
-            "refund_policy_rag": settings.refund_policy_rag_url,
-            "order_base": settings.order_api_url,
-            "refund_base": settings.refund_api_url,
+        "mcp_servers": {
+            "product_mcp_url": settings.product_mcp_url,
+            "refund_policy_mcp_url": settings.refund_policy_mcp_url,
+            "order_mcp_url": settings.order_mcp_url,
+            "refund_mcp_url": settings.refund_mcp_url,
         },
     }
